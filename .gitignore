@@ -1,0 +1,17 @@
+# Environment variables with secrets
+.env
+
+# Claude Code - generated/cache files (don't commit)
+.claude/plugins/
+.claude/cache/
+.claude/*.log
+.claude/*.db
+.claude/file-history/
+.claude/debug/
+.claude/shell-snapshots/
+.claude/session-env/
+.claude/todos/
+.claude/projects/
+.claude/history.jsonl
+.claude/.claude.json
+.claude/stats-cache.json
