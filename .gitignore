@@ -1,6 +1,3 @@
-# Environment variables with secrets
-.env
-
 # Claude Code - generated/cache files (don't commit)
 .claude/plugins/
 .claude/cache/

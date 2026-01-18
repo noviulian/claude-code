@@ -10,12 +10,12 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Paths
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Paths - use $0 for better portability
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_DIR="$PROJECT_ROOT/.claude"
 GLOBAL_CLAUDE="$HOME/.claude"
 
-echo -e "${YELLOW}Syncing Claude Code config to global...${NC}"
+printf "${YELLOW}Syncing Claude Code config to global...${NC}\n"
 
 # Backup existing global config
 BACKUP_DIR="$GLOBAL_CLAUDE.backup.$(date +%Y%m%d_%H%M%S)"
@@ -25,7 +25,7 @@ backup_item() {
     local item="$1"
     if [ -e "$GLOBAL_CLAUDE/$item" ]; then
         cp -r "$GLOBAL_CLAUDE/$item" "$BACKUP_DIR/"
-        echo -e "${GREEN}✓${NC} Backed up $item"
+        printf "${GREEN}✓${NC} Backed up %s\n" "$item"
     fi
 }
 
@@ -34,8 +34,9 @@ backup_item "skills"
 backup_item "agents"
 backup_item "settings.json"
 backup_item "settings.local.json"
+backup_item "CLAUDE.md"
 
-echo -e "${YELLOW}Backup created at: $BACKUP_DIR${NC}"
+printf "${YELLOW}Backup created at: %s${NC}\n" "$BACKUP_DIR"
 
 # Sync items
 sync_item() {
@@ -43,47 +44,49 @@ sync_item() {
     if [ -e "$CONFIG_DIR/$item" ]; then
         rm -rf "$GLOBAL_CLAUDE/$item"
         cp -r "$CONFIG_DIR/$item" "$GLOBAL_CLAUDE/$item"
-        echo -e "${GREEN}✓${NC} Synced $item"
+        printf "${GREEN}✓${NC} Synced %s\n" "$item"
     else
-        echo -e "${YELLOW}⚠${NC} $item not found in local config, skipping"
+        printf "${YELLOW}⚠${NC} %s not found in local config, skipping\n" "$item"
     fi
 }
 
 # Sync items
 sync_item "skills"
 sync_item "agents"
+sync_item "settings.json"
 sync_item "settings.local.json"
-
-# Sync settings.json with token injection from .env
-if [ -e "$CONFIG_DIR/settings.json" ]; then
-    # Read token from .env file
-    if [ -e "$PROJECT_ROOT/.env" ]; then
-        AUTH_TOKEN=$(grep "^ANTHROPIC_AUTH_TOKEN=" "$PROJECT_ROOT/.env" | cut -d'=' -f2)
-        if [ -n "$AUTH_TOKEN" ]; then
-            # Copy and replace token
-            sed "s/\"ANTHROPIC_AUTH_TOKEN\": \"ANTHROPIC_AUTH_TOKEN\"/\"ANTHROPIC_AUTH_TOKEN\": \"$AUTH_TOKEN\"/" \
-                "$CONFIG_DIR/settings.json" > "$GLOBAL_CLAUDE/settings.json"
-            echo -e "${GREEN}✓${NC} Synced settings.json (with token from .env)"
-        else
-            cp "$CONFIG_DIR/settings.json" "$GLOBAL_CLAUDE/settings.json"
-            echo -e "${YELLOW}⚠${NC} No ANTHROPIC_AUTH_TOKEN found in .env, copied as-is"
-        fi
-    else
-        cp "$CONFIG_DIR/settings.json" "$GLOBAL_CLAUDE/settings.json"
-        echo -e "${YELLOW}⚠${NC} No .env file found, copied settings.json as-is"
-    fi
-else
-    echo -e "${YELLOW}⚠${NC} settings.json not found in local config, skipping"
-fi
-
-echo -e "${GREEN}✓ Sync complete!${NC}"
+sync_item "CLAUDE.md"
 
 # Run statusline setup
-echo -e "${YELLOW}Setting up statusline...${NC}"
+printf "${YELLOW}Setting up statusline...${NC}\n"
 if [ -f "$PROJECT_ROOT/documentation/setup-statusline.sh" ]; then
     bash "$PROJECT_ROOT/documentation/setup-statusline.sh"
+    printf "${GREEN}✓${NC} Statusline configured\n"
 else
-    echo -e "${YELLOW}⚠${NC} Statusline setup script not found, skipping"
+    printf "${YELLOW}⚠${NC} Statusline setup script not found, skipping\n"
 fi
 
-echo -e "${YELLOW}Note: You may need to restart Claude Code for changes to take effect.${NC}"
+# Sync MCP config script
+if [ -e "$CONFIG_DIR/mcp-config.sh" ]; then
+    cp "$CONFIG_DIR/mcp-config.sh" "$GLOBAL_CLAUDE/mcp-config.sh"
+    chmod +x "$GLOBAL_CLAUDE/mcp-config.sh"
+    printf "${GREEN}✓${NC} Synced mcp-config.sh\n"
+
+    # Ask if user wants to run MCP config (POSIX-compatible)
+    printf "\nConfigure MCP servers now? (y/N) "
+    read -r REPLY
+    case "$REPLY" in
+        [Yy]*)
+            bash "$GLOBAL_CLAUDE/mcp-config.sh"
+            ;;
+        *)
+            printf "${YELLOW}Skipped MCP configuration. Run manually with: ~/.claude/mcp-config.sh${NC}\n"
+            ;;
+    esac
+else
+    printf "${YELLOW}⚠${NC} mcp-config.sh not found in local config, skipping\n"
+fi
+
+printf "${GREEN}✓ Sync complete!${NC}\n"
+printf "\n"
+printf "${YELLOW}Note: You may need to restart Claude Code for changes to take effect.${NC}\n"

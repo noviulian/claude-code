@@ -1,10 +1,50 @@
 {
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "ANTHROPIC_AUTH_TOKEN",
-    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "API_TIMEOUT_MS": "3000000",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "GLM-4.7",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "GLM-4.7",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "GLM-4.5-Air"
+  "permissions": {
+    "allow": [
+      "Edit:~/Code/**",
+      "Write:~/Code/**",
+      "Bash(rm):~/Code/**",
+      "Bash(mv):~/Code/**"
+    ],
+    "deny": ["Edit:**", "Write:**", "Bash(rm):**", "Bash(mv):**"]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline-command.sh"
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | while read f; do case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.json) npx prettier --write \"$f\" 2>/dev/null ;; esac; done || true"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$(uname -s)\" in Darwin) osascript -e 'display notification \"Awaiting your input\" with title \"Claude Code\"' ;; Linux) command -v notify-send >/dev/null && notify-send 'Claude Code' 'Awaiting your input' ;; esac 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$(uname -s)\" in Darwin) osascript -e 'display notification \"Task completed\" with title \"Claude Code\"' ;; Linux) command -v notify-send >/dev/null && notify-send 'Claude Code' 'Task completed' ;; esac 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
   }
 }

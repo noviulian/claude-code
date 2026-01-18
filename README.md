@@ -9,10 +9,9 @@ claude-code/
 ├── .claude/                 # Claude Code configuration (tracked in git)
 │   ├── skills/             # Custom skills
 │   ├── agents/             # Custom agents
-│   ├── settings.json       # Main settings (with placeholder token)
-│   └── settings.local.json # Local overrides
-├── .env                     # API token (not in git)
-├── .env.example             # Template for .env
+│   ├── settings.json       # Main settings
+│   ├── settings.local.json # Local overrides
+│   └── CLAUDE.md           # Project-wide instructions
 ├── documentation/           # Detailed guides
 │   ├── INDEX.md            # Documentation index
 │   ├── STATUSLINE_SETUP_GUIDE.md
@@ -39,22 +38,32 @@ cd <repo-directory>
 
 This will:
 - Sync your skills, agents, and settings to `~/.claude`
-- Set up the statusline
-- Inject your API token from `.env`
+- Set up the statusline with accurate token calculations
+- Optionally configure MCP servers
+
+### Authentication
+
+Claude Code handles authentication automatically. After syncing, run:
+
+```bash
+claude login
+```
+
+### Statusline Features
+
+- **Accurate percentage**: Calculated from actual token usage
+- **Correct token display**: Shows `used/max` context window
+- **Color-coded progress bar**: Green -> Yellow -> Orange -> Red
+- **Comma formatting**: `77,000/200,000` for easy reading
+- **Cross-platform**: Works on macOS and Linux
+
+Example: `Claude Sonnet | [#######-------------] 38% | 77,000/200,000 | main | project`
 
 ### Edit Configuration Locally
 
 1. Make changes to files in `.claude/`
 2. Run `./sync-to-global.sh` to deploy changes
 3. Restart Claude Code for changes to take effect
-
-### API Token Management
-
-The `ANTHROPIC_AUTH_TOKEN` in `.claude/settings.json` is a placeholder. The actual token is read from `.env` during sync:
-
-1. Copy `.env.example` to `.env`
-2. Add your actual token: `ANTHROPIC_AUTH_TOKEN=your_token_here`
-3. `.env` is in `.gitignore` so it won't be committed to git
 
 ### Pull Latest from Global
 
@@ -70,6 +79,7 @@ If you've made changes outside this project and want to pull them in:
 - `agents/` - Custom agents
 - `settings.json` - Main Claude Code settings
 - `settings.local.json` - Local overrides
+- `CLAUDE.md` - Project-wide instructions
 
 ## What's NOT Synced (machine-specific)
 
@@ -82,13 +92,21 @@ If you've made changes outside this project and want to pull them in:
 
 The `sync-to-global.sh` script automatically creates a backup of your existing global config at `~/.claude.backup.YYYYMMDD_HHMMSS` before overwriting.
 
+## Cross-Platform Support
+
+This configuration works on both **macOS** and **Linux**:
+
+- Statusline setup detects OS and installs dependencies via the appropriate package manager
+- Hooks use OS detection for notifications (`osascript` on macOS, `notify-send` on Linux)
+- All shell scripts use POSIX-compatible syntax
+
 ## Documentation
 
 See the [documentation folder](documentation/) for detailed guides:
 
 - **[Documentation Index](documentation/INDEX.md)** - Complete documentation overview
 - **[Statusline Setup Guide](documentation/STATUSLINE_SETUP_GUIDE.md)** - Custom status bar configuration
-- **[Authentication Guide](documentation/AUTHENTICATION.md)** - API key vs OAuth login switching
+- **[Authentication Guide](documentation/AUTHENTICATION.md)** - Login and authentication
 - **[Settings Reference](documentation/SETTINGS_REFERENCE.md)** - Common configuration options
 - **[Hooks Guide](documentation/HOOKS_GUIDE.md)** - Automate workflows with hooks
 - **[Environment Variables](documentation/ENVIRONMENT_VARIABLES.md)** - Complete variable reference

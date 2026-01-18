@@ -145,7 +145,7 @@ If multiple auth methods are configured, API key takes precedence:
 
 ### Security
 
-- **API Keys**: Store in `.env` file (gitignored), not directly in committed settings
+- **API Keys**: Store in `settings.local.json` (gitignored), not directly in committed settings
 - **OAuth**: More secure for interactive use, no keys to manage
 - **Settings.local.json**: Use for personal auth config, never commit it
 

@@ -53,9 +53,8 @@ claude-code/
 ├── .claude/                    # Your configuration (tracked in git)
 │   ├── skills/                 # Custom skills
 │   ├── agents/                 # Custom agents
-│   ├── settings.json           # Settings (with placeholder token)
+│   ├── settings.json           # Main settings
 │   └── settings.local.json     # Local overrides
-├── .env                        # API token (not in git)
 ├── documentation/              # This folder
 │   ├── INDEX.md               # This file
 │   ├── STATUSLINE_SETUP_GUIDE.md
@@ -73,9 +72,8 @@ claude-code/
 ```bash
 git clone <your-repo>
 cd <repo>
-cp .env.example .env
-# Edit .env with your API token
 ./sync-to-global.sh
+claude login  # Authenticate with Claude
 ```
 
 ### Add a new skill
@@ -101,7 +99,7 @@ Edit `.claude/settings.json`:
 ```json
 {
   "permissions": {
-    "deny": ["Read(./.env)", "Read(./secrets/**)"]
+    "deny": ["Read(./secrets/**)", "Read(./*.pem)"]
   }
 }
 ```
@@ -121,9 +119,9 @@ Edit `.claude/settings.json`:
 2. Check for syntax errors: `jq . ~/.claude/settings.json`
 3. Restart Claude Code
 
-### API token not working
-1. Verify token in `.env` file
-2. Check `ANTHROPIC_BASE_URL` is correct
+### Authentication not working
+1. Run `claude login` to authenticate
+2. Check `ANTHROPIC_BASE_URL` is correct (if using custom endpoint)
 3. See [AUTHENTICATION.md](AUTHENTICATION.md)
 
 ### Hook not executing

@@ -35,16 +35,20 @@ After running the setup script, you'll have:
 
 The default statusline configuration shows:
 
-- **Model name** - Which Claude model is active
-- **Current directory** - Your working directory
-- **Git branch** - Current branch if in a git repository
-- **Output style** - When using a non-default output style
-- **Vim mode** - Current vim mode when active
-- **Context usage** - Percentage of context window used
+- **Model name** - Which Claude model is active (colored cyan)
+- **Progress bar** - Visual representation of context usage with color coding:
+  - Green (0-39%)
+  - Yellow (40-69%)
+  - Orange (70-89%)
+  - Red (90-100%)
+- **Percentage** - Calculated as: `(total_input_tokens + total_output_tokens) / context_window_size × 100`
+- **Token count** - Shows `tokens_used / max_context_size` with comma formatting
+- **Git branch** - Current branch if in a git repository (colored magenta)
+- **Project name** - Current project directory (colored green)
 
 Example output:
 ```
-Claude 3.5 Sonnet | in claude-code on main | (12% context)
+Claude Sonnet | [███████░░░░░░░░░░░░░] 38% | 77,000/200,000 tokens | main | claude-code
 ```
 
 ## Requirements
@@ -82,59 +86,56 @@ input=$(cat)
 model_display=$(echo "$input" | jq -r '.model.display_name // "Claude"')
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir // "Unknown"')
 project_dir=$(echo "$input" | jq -r '.workspace.project_dir // "Unknown"')
-output_style=$(echo "$input" | jq -r '.output_style.name // empty')
-used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-remaining_pct=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty')
-vim_mode=$(echo "$input" | jq -r '.vim.mode // empty')
+total_input=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+total_output=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+context_window_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
+
+# Calculate total tokens used and percentage
+total_used=$((total_input + total_output))
+if [ "$context_window_size" -gt 0 ]; then
+    used_pct=$((total_used * 100 / context_window_size))
+else
+    used_pct=0
+fi
+
+# Get project name
+project_name=$(basename "$project_dir")
 
 # Get git branch if in a git repo
 git_branch=""
 git_info=$(cd "$current_dir" 2>/dev/null && git rev-parse --is-inside-work-tree 2>/dev/null)
 if [ "$git_info" = "true" ]; then
     git_branch=$(cd "$current_dir" 2>/dev/null && git branch --show-current 2>/dev/null)
-    if [ -n "$git_branch" ]; then
-        git_branch=" on $git_branch"
-    fi
 fi
 
-# Build status line components
-status_parts=()
+# NOTE: For full implementation including progress bar and colors,
+# see the generated script at ~/.claude/statusline-command.sh
+# This is a simplified example showing the key token calculations
 
-# Add model and directory
-status_parts+=("$model_display")
+# Build basic status line
+status_line="$model_display"
 
-# Add output style if set
-if [ -n "$output_style" ] && [ "$output_style" != "default" ]; then
-    status_parts+=("[$output_style]")
+# Add percentage if available
+if [ -n "$used_pct" ] && [ "$used_pct" != "0" ]; then
+    status_line+=" | ${used_pct}%"
 fi
 
-# Add vim mode if active
-if [ -n "$vim_mode" ]; then
-    status_parts+=("($vim_mode)")
+# Add token count
+if [ "$total_used" != "0" ]; then
+    total_used_formatted=$(printf "%'d" "$total_used")
+    context_size_formatted=$(printf "%'d" "$context_window_size")
+    status_line+=" | ${total_used_formatted}/${context_size_formatted} tokens"
 fi
 
-# Add directory with git branch
-basename_dir=$(basename "$current_dir")
-if [ "$current_dir" != "$project_dir" ]; then
-    # Show relative path from project root
-    relative_path="${current_dir#$project_dir/}"
-    if [ "$relative_path" = "$current_dir" ]; then
-        status_parts+=("in $basename_dir$git_branch")
-    else
-        status_parts+=("in $relative_path$git_branch")
-    fi
-else
-    status_parts+=("in $basename_dir$git_branch")
+# Add git branch if available
+if [ -n "$git_branch" ]; then
+    status_line+=" | $git_branch"
 fi
 
-# Add context usage if available
-if [ -n "$used_pct" ]; then
-    status_parts+=("($used_pct% context)")
+# Add project name
+if [ -n "$project_name" ] && [ "$project_name" != "Unknown" ]; then
+    status_line+=" | $project_name"
 fi
-
-# Join parts with " | "
-separator=" | "
-status_line=$(IFS="$separator"; echo "${status_parts[*]}")
 
 # Output the final status line
 echo "$status_line"
@@ -207,19 +208,26 @@ You can customize the statusline by editing `~/.claude/statusline-command.sh`. T
 
 ### Examples
 
-**Show only model and directory:**
+**Show only model and token usage:**
 ```bash
 input=$(cat)
 model=$(echo "$input" | jq -r '.model.display_name')
-dir=$(echo "$input" | jq -r '.workspace.current_dir')
-echo "$model in $dir"
+total_input=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+total_output=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+context_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
+total_used=$((total_input + total_output))
+echo "$model | $total_used/$context_size tokens"
 ```
 
-**Show context remaining:**
+**Calculate and show percentage:**
 ```bash
 input=$(cat)
-remaining=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty')
-[ -n "$remaining" ] && echo "Context: $remaining% remaining"
+total_input=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+total_output=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+context_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
+total_used=$((total_input + total_output))
+used_pct=$((total_used * 100 / context_size))
+echo "Context: $used_pct% used ($total_used/$context_size tokens)"
 ```
 
 ## Importing Your Shell Prompt
@@ -239,8 +247,9 @@ You can convert your existing shell PS1 prompt to work with the statusline. Ask 
 
 1. Test the script manually:
    ```bash
-   echo '{"model":{"display_name":"Test"},"workspace":{"current_dir":"/tmp","project_dir":"/tmp"},"context_window":{"used_percentage":50}}' | ~/.claude/statusline-command.sh
+   echo '{"model":{"display_name":"Claude"},"workspace":{"current_dir":"/tmp","project_dir":"/tmp"},"context_window":{"total_input_tokens":45000,"total_output_tokens":32000,"context_window_size":200000}}' | ~/.claude/statusline-command.sh
    ```
+   Expected output should show progress bar, 38%, and 77,000/200,000 tokens
 2. Check for syntax errors: `bash -n ~/.claude/statusline-command.sh`
 
 ## Making Further Changes
