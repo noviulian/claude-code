@@ -77,4 +77,13 @@ else
 fi
 
 echo -e "${GREEN}✓ Sync complete!${NC}"
+
+# Run statusline setup
+echo -e "${YELLOW}Setting up statusline...${NC}"
+if [ -f "$PROJECT_ROOT/documentation/setup-statusline.sh" ]; then
+    bash "$PROJECT_ROOT/documentation/setup-statusline.sh"
+else
+    echo -e "${YELLOW}⚠${NC} Statusline setup script not found, skipping"
+fi
+
 echo -e "${YELLOW}Note: You may need to restart Claude Code for changes to take effect.${NC}"
